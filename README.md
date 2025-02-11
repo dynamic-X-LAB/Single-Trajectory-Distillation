@@ -52,46 +52,42 @@ pip install -r requirements.txt
 ```python
 # !pip install opencv-python
 import torch
-from diffusers import StableDiffusionXLImg2ImgPipeline, TCDScheduler
+import diffusers
+from diffusers import StableDiffusionXLImg2ImgPipeline
+from diffusers.schedulers.scheduling_tcd import TCDScheduler
 from PIL import Image
-
+ 
 device = "cuda"
 std_lora_path = "weights/std/std_sdxl_i2i_eta0.75.safetensors"
-
-# Initialize pipeline
-pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-    "weights/dreamshaper_XL_v21", 
-    torch_dtype=torch.float16, 
-    variant="fp16"
-).to(device)
-
-# Load STD components
-pipe.scheduler = TCDScheduler.from_config(
-    pipe.scheduler.config, 
-    timestep_spacing='leading', 
-    steps_offset=1
-)
+ 
+pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained("weights/dreamshaper_XL_v21", torch_dtype=torch.float16, variant="fp16").to(device)
+ 
+# load std lora
+pipe.scheduler = TCDScheduler.from_config(pipe.scheduler.config, timestep_spacing='leading', steps_offset=1)
 pipe.load_lora_weights(std_lora_path, adapter_name="std")
 pipe.fuse_lora()
-
-# Prepare inputs
+ 
+# load ipadapter
+pipe.load_ip_adapter("h94/IP-Adapter", subfolder="sdxl_models", weight_name='ip-adapter-plus_sdxl_vit-h.bin')
+pipe.set_ip_adapter_scale(dict(down=0, mid=0, up=dict(block_0=[0, 1, 0], block_1=0))) # only add on 7th block
+ 
+# inputs
 prompt = "Stick figure abstract nostalgic style."
 n_prompt = "worst face, NSFW, nudity, nipples, (worst quality, low quality:1.4), blurred, low resolution, pixelated, dull colors, overly simplistic, harsh lighting, lack of detail, poorly composed, dark and gloomy atmosphere, (malformed hands:1.4), (poorly drawn hands:1.4), (mutated fingers:1.4), (extra limbs:1.35), (poorly  drawn face:1.4), missing legs, (extra legs:1.4), missing arms, extra arm, ugly, fat, (close shot:1.1), explicit content, sexual content, pornography, adult content, inappropriate, indecent, obscene, vulgar, suggestive, erotic, lewd, provocative, mature content"
 src_img = Image.open("doc/imgs/src_img.jpg").resize((960, 1280))
 style_img = Image.open("doc/imgs/style_img.png")
-
-# Run inference
+ 
 image = pipe(
-    prompt=prompt, 
+    prompt=prompt,
     negative_prompt=n_prompt,
-    num_inference_steps=11,  # 8 / 0.75 = 11
+    num_inference_steps=11, # 8 / 0.75 = 11
     guidance_scale=6,
     strength=0.75,
     image=src_img,
     ip_adapter_image=style_img,
 ).images[0]
-
-image.save("std_output.png")
+ 
+image.save("std.png")
 ```
 ## 📦 Model Zoo
 
