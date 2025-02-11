@@ -68,7 +68,7 @@ pipe.load_lora_weights(std_lora_path, adapter_name="std")
 pipe.fuse_lora()
  
 # load ipadapter
-pipe.load_ip_adapter("h94/IP-Adapter", subfolder="sdxl_models", weight_name='ip-adapter-plus_sdxl_vit-h.bin')
+pipe.load_ip_adapter("ozzygt/sdxl-ip-adapter", "", weight_name="ip-adapter_sdxl_vit-h.safetensors")
 pipe.set_ip_adapter_scale(dict(down=0, mid=0, up=dict(block_0=[0, 1, 0], block_1=0))) # only add on 7th block
  
 # inputs
